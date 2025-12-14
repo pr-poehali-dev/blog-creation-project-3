@@ -100,8 +100,12 @@ const Index = () => {
               <a href="#tags" className="text-gray-700 hover:text-purple-600 transition-colors font-medium">
                 Категории
               </a>
-              <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
-                Подписаться
+              <Button 
+                variant="outline"
+                onClick={() => window.location.href = '/admin'}
+              >
+                <Icon name="Settings" size={18} className="mr-2" />
+                Админ-панель
               </Button>
             </div>
           </div>
