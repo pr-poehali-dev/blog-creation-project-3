@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -14,73 +14,46 @@ interface Article {
   readTime: string;
 }
 
-const articles: Article[] = [
-  {
-    id: 1,
-    title: 'Будущее веб-разработки: тренды 2025',
-    excerpt: 'Исследуем ключевые технологии и подходы, которые определят развитие веб-индустрии в ближайшие годы.',
-    image: 'https://cdn.poehali.dev/projects/6be8a421-82e7-4b79-8da7-83f3ec132251/files/89f395aa-11df-461d-aa0b-857c6d9a520c.jpg',
-    tags: ['Технологии', 'Веб-разработка', 'Тренды'],
-    date: '15 декабря 2024',
-    readTime: '5 мин'
-  },
-  {
-    id: 2,
-    title: 'Дизайн-системы: как создать единый язык продукта',
-    excerpt: 'Подробное руководство по построению эффективной дизайн-системы для вашей команды.',
-    image: 'https://cdn.poehali.dev/projects/6be8a421-82e7-4b79-8da7-83f3ec132251/files/9e74a6fe-769a-4444-b846-76406f8e1bd9.jpg',
-    tags: ['Дизайн', 'UX/UI', 'Инструменты'],
-    date: '12 декабря 2024',
-    readTime: '8 мин'
-  },
-  {
-    id: 3,
-    title: 'TypeScript для начинающих: полное погружение',
-    excerpt: 'Начните свой путь в типизированном JavaScript с этого практического руководства.',
-    image: 'https://cdn.poehali.dev/projects/6be8a421-82e7-4b79-8da7-83f3ec132251/files/89f395aa-11df-461d-aa0b-857c6d9a520c.jpg',
-    tags: ['TypeScript', 'Обучение', 'JavaScript'],
-    date: '10 декабря 2024',
-    readTime: '12 мин'
-  },
-  {
-    id: 4,
-    title: 'Микроанимации в интерфейсах: примеры и лучшие практики',
-    excerpt: 'Как правильно использовать анимацию для улучшения пользовательского опыта.',
-    image: 'https://cdn.poehali.dev/projects/6be8a421-82e7-4b79-8da7-83f3ec132251/files/9e74a6fe-769a-4444-b846-76406f8e1bd9.jpg',
-    tags: ['Анимация', 'Дизайн', 'UX/UI'],
-    date: '8 декабря 2024',
-    readTime: '6 мин'
-  },
-  {
-    id: 5,
-    title: 'Оптимизация производительности React приложений',
-    excerpt: 'Практические советы по ускорению работы ваших React-проектов.',
-    image: 'https://cdn.poehali.dev/projects/6be8a421-82e7-4b79-8da7-83f3ec132251/files/89f395aa-11df-461d-aa0b-857c6d9a520c.jpg',
-    tags: ['React', 'Оптимизация', 'Веб-разработка'],
-    date: '5 декабря 2024',
-    readTime: '10 мин'
-  },
-  {
-    id: 6,
-    title: 'Адаптивная типографика: руководство по масштабированию',
-    excerpt: 'Создаём красивые и читаемые тексты на всех размерах экранов.',
-    image: 'https://cdn.poehali.dev/projects/6be8a421-82e7-4b79-8da7-83f3ec132251/files/9e74a6fe-769a-4444-b846-76406f8e1bd9.jpg',
-    tags: ['Типографика', 'Дизайн', 'CSS'],
-    date: '3 декабря 2024',
-    readTime: '7 мин'
-  }
-];
-
-const allTags = Array.from(new Set(articles.flatMap(article => article.tags)));
+const API_URL = 'https://functions.poehali.dev/6ac092ce-4ee7-4831-a0a7-a22c17c5f0c9';
 
 const Index = () => {
+  const [articles, setArticles] = useState<Article[]>([]);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchArticles = async () => {
+      try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+        setArticles(data);
+      } catch (error) {
+        console.error('Failed to fetch articles:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchArticles();
+  }, []);
+
+  const allTags = Array.from(new Set(articles.flatMap(article => article.tags)));
 
   const filteredArticles = selectedTag
     ? articles.filter(article => article.tags.includes(selectedTag))
     : articles;
 
   const featuredArticle = articles[0];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+        <div className="text-center">
+          <Icon name="Loader2" size={48} className="animate-spin mx-auto mb-4 text-purple-600" />
+          <p className="text-gray-600">Загрузка статей...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">

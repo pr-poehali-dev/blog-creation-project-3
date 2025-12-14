@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,8 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 
+const API_URL = 'https://functions.poehali.dev/6ac092ce-4ee7-4831-a0a7-a22c17c5f0c9';
+
 interface Article {
   id: number;
   title: string;
@@ -26,31 +28,11 @@ interface Article {
   readTime: string;
 }
 
-const initialArticles: Article[] = [
-  {
-    id: 1,
-    title: 'Будущее веб-разработки: тренды 2025',
-    excerpt: 'Исследуем ключевые технологии и подходы, которые определят развитие веб-индустрии в ближайшие годы.',
-    image: 'https://cdn.poehali.dev/projects/6be8a421-82e7-4b79-8da7-83f3ec132251/files/89f395aa-11df-461d-aa0b-857c6d9a520c.jpg',
-    tags: ['Технологии', 'Веб-разработка', 'Тренды'],
-    date: '15 декабря 2024',
-    readTime: '5 мин'
-  },
-  {
-    id: 2,
-    title: 'Дизайн-системы: как создать единый язык продукта',
-    excerpt: 'Подробное руководство по построению эффективной дизайн-системы для вашей команды.',
-    image: 'https://cdn.poehali.dev/projects/6be8a421-82e7-4b79-8da7-83f3ec132251/files/9e74a6fe-769a-4444-b846-76406f8e1bd9.jpg',
-    tags: ['Дизайн', 'UX/UI', 'Инструменты'],
-    date: '12 декабря 2024',
-    readTime: '8 мин'
-  },
-];
-
 const Admin = () => {
-  const [articles, setArticles] = useState<Article[]>(initialArticles);
+  const [articles, setArticles] = useState<Article[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -60,6 +42,26 @@ const Admin = () => {
     tags: '',
     readTime: ''
   });
+
+  const fetchArticles = async () => {
+    try {
+      const response = await fetch(API_URL);
+      const data = await response.json();
+      setArticles(data);
+    } catch (error) {
+      toast({
+        title: "Ошибка загрузки",
+        description: "Не удалось загрузить статьи",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchArticles();
+  }, []);
 
   const handleOpenDialog = (article?: Article) => {
     if (article) {
@@ -84,7 +86,7 @@ const Admin = () => {
     setIsDialogOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const articleData = {
@@ -96,39 +98,79 @@ const Admin = () => {
       readTime: formData.readTime
     };
 
-    if (editingArticle) {
-      setArticles(articles.map(article => 
-        article.id === editingArticle.id 
-          ? { ...article, ...articleData }
-          : article
-      ));
+    try {
+      if (editingArticle) {
+        const response = await fetch(`${API_URL}/${editingArticle.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(articleData)
+        });
+        
+        if (response.ok) {
+          toast({
+            title: "Статья обновлена",
+            description: "Изменения успешно сохранены",
+          });
+          fetchArticles();
+        }
+      } else {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(articleData)
+        });
+
+        if (response.ok) {
+          toast({
+            title: "Статья создана",
+            description: "Новая статья добавлена в блог",
+          });
+          fetchArticles();
+        }
+      }
+    } catch (error) {
       toast({
-        title: "Статья обновлена",
-        description: "Изменения успешно сохранены",
-      });
-    } else {
-      const newArticle = {
-        id: Math.max(...articles.map(a => a.id), 0) + 1,
-        ...articleData
-      };
-      setArticles([newArticle, ...articles]);
-      toast({
-        title: "Статья создана",
-        description: "Новая статья добавлена в блог",
+        title: "Ошибка",
+        description: "Не удалось сохранить статью",
+        variant: "destructive"
       });
     }
 
     setIsDialogOpen(false);
   };
 
-  const handleDelete = (id: number) => {
-    setArticles(articles.filter(article => article.id !== id));
-    toast({
-      title: "Статья удалена",
-      description: "Статья успешно удалена из блога",
-      variant: "destructive"
-    });
+  const handleDelete = async (id: number) => {
+    try {
+      const response = await fetch(`${API_URL}/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Статья удалена",
+          description: "Статья успешно удалена из блога",
+        });
+        fetchArticles();
+      }
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить статью",
+        variant: "destructive"
+      });
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+        <div className="text-center">
+          <Icon name="Loader2" size={48} className="animate-spin mx-auto mb-4 text-purple-600" />
+          <p className="text-gray-600">Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
